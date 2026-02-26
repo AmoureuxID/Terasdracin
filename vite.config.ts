@@ -48,6 +48,13 @@ export default defineConfig({
     port: 3000,
     strictPort: false,
     host: true,
+    proxy: {
+      '/api': {
+        target: 'https://api.sansekai.my.id',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 
   // Preview server configuration

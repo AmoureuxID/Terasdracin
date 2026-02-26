@@ -1,6 +1,8 @@
+import { ENV } from './env';
+
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: 'https://api.sansekai.my.id/api',
+  BASE_URL: ENV.API_BASE_URL,
   TIMEOUT: 30000,
   MAX_RETRIES: 3,
   RETRY_DELAY: 1000,
