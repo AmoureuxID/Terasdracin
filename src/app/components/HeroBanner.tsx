@@ -1,12 +1,14 @@
 import { Play, Info } from 'lucide-react';
 import { Link } from 'react-router';
 import { Drama } from '../lib/api';
+import { useState } from 'react';
 
 interface HeroBannerProps {
   drama: Drama;
 }
 
 export default function HeroBanner({ drama }: HeroBannerProps) {
+  const [imageError, setImageError] = useState(false);
   const coverImage = drama.coverHorizontal || drama.cover || drama.posterUrl;
   const title = drama.title || drama.name || 'Untitled';
   const description = drama.introduction || drama.description || '';
@@ -15,11 +17,16 @@ export default function HeroBanner({ drama }: HeroBannerProps) {
     <div className="relative h-[70vh] md:h-[85vh] w-full">
       {/* Background Image */}
       <div className="absolute inset-0">
-        <img
-          src={coverImage}
-          alt={title}
-          className="w-full h-full object-cover"
-        />
+        {!imageError && coverImage ? (
+          <img
+            src={coverImage}
+            alt={title}
+            className="w-full h-full object-cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-900 to-black" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
       </div>

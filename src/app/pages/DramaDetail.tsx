@@ -1,37 +1,45 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
-import { dramaboxAPI, DramaDetail as DramaDetailType } from '../lib/api';
+import { DramaDetail as DramaDetailType } from '../lib/api';
+import { DramaService } from '../lib/dramaService';
 import { Play, ArrowLeft, Loader2 } from 'lucide-react';
+import ErrorMessage from '../components/ErrorMessage';
 
 export default function DramaDetail() {
   const { bookId } = useParams<{ bookId: string }>();
   const [drama, setDrama] = useState<DramaDetailType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDetail = async () => {
+    if (!bookId) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [dramaData, episodesData] = await Promise.all([
+        DramaService.getDetail(bookId),
+        DramaService.getAllEpisodes(bookId),
+      ]);
+      
+      if (!dramaData) {
+        throw new Error('Drama tidak ditemukan');
+      }
+      
+      setDrama({
+        ...dramaData,
+        episodes: episodesData,
+      });
+    } catch (error) {
+      console.error('Error fetching drama detail:', error);
+      setError(error instanceof Error ? error.message : 'Gagal memuat detail drama');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchDetail() {
-      if (!bookId) return;
-      
-      try {
-        setLoading(true);
-        const detailRes = await dramaboxAPI.detail(bookId);
-        const dramaData = detailRes?.data || detailRes;
-        
-        // Fetch all episodes
-        const episodesRes = await dramaboxAPI.allEpisodes(bookId);
-        const episodesData = Array.isArray(episodesRes) ? episodesRes : episodesRes?.data || [];
-        
-        setDrama({
-          ...dramaData,
-          episodes: episodesData,
-        });
-      } catch (error) {
-        console.error('Error fetching drama detail:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchDetail();
   }, [bookId]);
 
@@ -43,17 +51,17 @@ export default function DramaDetail() {
     );
   }
 
-  if (!drama) {
+  if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Drama tidak ditemukan</p>
+        <ErrorMessage message={error} />
       </div>
     );
   }
 
-  const coverImage = drama.coverHorizontal || drama.cover || drama.posterUrl;
-  const title = drama.title || drama.name || 'Untitled';
-  const description = drama.introduction || drama.description || '';
+  const coverImage = DramaService.getCoverImage(drama);
+  const title = DramaService.getTitle(drama);
+  const description = DramaService.getDescription(drama);
 
   return (
     <div className="min-h-screen pt-16">

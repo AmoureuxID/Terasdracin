@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import HeroBanner from '../components/HeroBanner';
 import DramaRow from '../components/DramaRow';
-import { dramaboxAPI, Drama } from '../lib/api';
+import { Drama } from '../lib/api';
+import { DramaService } from '../lib/dramaService';
 import { Loader2 } from 'lucide-react';
+import { HeroBannerSkeleton, DramaRowSkeleton } from '../components/LoadingSkeleton';
+import ErrorMessage from '../components/ErrorMessage';
 
 export default function Home() {
   const [heroData, setHeroData] = useState<Drama | null>(null);
@@ -11,47 +14,58 @@ export default function Home() {
   const [forYou, setForYou] = useState<Drama[]>([]);
   const [dubIndo, setDubIndo] = useState<Drama[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Use service layer to fetch all home data
+      const homeData = await DramaService.getHomeData();
+
+      setTrending(homeData.trending);
+      setLatest(homeData.latest);
+      setForYou(homeData.forYou);
+      setDubIndo(homeData.dubIndo);
+
+      // Use first trending item for hero banner
+      if (homeData.trending.length > 0) {
+        setHeroData(homeData.trending[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Gagal memuat konten. Silakan periksa koneksi internet Anda.';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        const [trendingRes, latestRes, forYouRes, dubIndoRes] = await Promise.all([
-          dramaboxAPI.trending(),
-          dramaboxAPI.latest(),
-          dramaboxAPI.forYou(1),
-          dramaboxAPI.dubIndo('terpopuler', 1),
-        ]);
-
-        // Set data from responses
-        const trendingData = Array.isArray(trendingRes) ? trendingRes : trendingRes?.data || [];
-        const latestData = Array.isArray(latestRes) ? latestRes : latestRes?.data || [];
-        const forYouData = Array.isArray(forYouRes) ? forYouRes : forYouRes?.data || [];
-        const dubIndoData = Array.isArray(dubIndoRes) ? dubIndoRes : dubIndoRes?.data || [];
-
-        setTrending(trendingData);
-        setLatest(latestData);
-        setForYou(forYouData);
-        setDubIndo(dubIndoData);
-
-        // Use first trending item for hero banner
-        if (trendingData.length > 0) {
-          setHeroData(trendingData[0]);
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchData();
   }, []);
 
   if (loading) {
     return (
+      <div className="pb-12">
+        <HeroBannerSkeleton />
+        <div className="relative -mt-32 z-10 space-y-8">
+          <DramaRowSkeleton />
+          <DramaRowSkeleton />
+          <DramaRowSkeleton />
+          <DramaRowSkeleton />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-red-600" />
+        <ErrorMessage message={error} onRetry={fetchData} />
       </div>
     );
   }

@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import DramaDetail from "./pages/DramaDetail";
 import Watch from "./pages/Watch";
 import Search from "./pages/Search";
+import NotFound from "./pages/NotFound";
 
 export const router = createBrowserRouter([
   {
@@ -15,6 +16,7 @@ export const router = createBrowserRouter([
       { path: "drama/:bookId", element: <DramaDetail /> },
       { path: "watch/:bookId/:episodeIndex", element: <Watch /> },
       { path: "search", element: <Search /> },
+      { path: "*", element: <NotFound /> },
     ],
   },
 ]);

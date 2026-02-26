@@ -19,4 +19,41 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+
+  // Production build optimization
+  build: {
+    target: 'es2015',
+    minify: 'terser',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router'],
+          'ui-vendor': ['lucide-react', 'motion'],
+          'video-vendor': ['hls.js'],
+        },
+      },
+    },
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console.log in production
+        drop_debugger: true,
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
+
+  // Server configuration for development
+  server: {
+    port: 3000,
+    strictPort: false,
+    host: true,
+  },
+
+  // Preview server configuration
+  preview: {
+    port: 4173,
+    strictPort: false,
+    host: true,
+  },
 })

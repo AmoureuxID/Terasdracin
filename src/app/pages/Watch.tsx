@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router';
-import { dramaboxAPI, DramaDetail as DramaDetailType, Episode } from '../lib/api';
+import { dramaboxAPI, DramaDetail as DramaDetailType, Episode, extractData, extractItem } from '../lib/api';
 import VideoPlayer from '../components/VideoPlayer';
 import { ArrowLeft, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import ErrorMessage from '../components/ErrorMessage';
 
 export default function Watch() {
   const { bookId, episodeIndex } = useParams<{ bookId: string; episodeIndex: string }>();
@@ -10,38 +11,48 @@ export default function Watch() {
   const [drama, setDrama] = useState<DramaDetailType | null>(null);
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const currentIndex = parseInt(episodeIndex || '0');
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!bookId) return;
+  const fetchData = async () => {
+    if (!bookId) return;
 
-      try {
-        setLoading(true);
-        const [detailRes, episodesRes] = await Promise.all([
-          dramaboxAPI.detail(bookId),
-          dramaboxAPI.allEpisodes(bookId),
-        ]);
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [detailRes, episodesRes] = await Promise.all([
+        dramaboxAPI.detail(bookId),
+        dramaboxAPI.allEpisodes(bookId),
+      ]);
 
-        const dramaData = detailRes?.data || detailRes;
-        const episodesData = Array.isArray(episodesRes) ? episodesRes : episodesRes?.data || [];
+      const dramaData = extractItem<DramaDetailType>(detailRes);
+      const episodesData = extractData<Episode>(episodesRes);
 
-        setDrama({
-          ...dramaData,
-          episodes: episodesData,
-        });
-
-        if (episodesData[currentIndex]) {
-          setCurrentEpisode(episodesData[currentIndex]);
-        }
-      } catch (error) {
-        console.error('Error fetching watch data:', error);
-      } finally {
-        setLoading(false);
+      if (!dramaData) {
+        throw new Error('Drama tidak ditemukan');
       }
-    }
 
+      setDrama({
+        ...dramaData,
+        episodes: episodesData,
+      });
+
+      if (episodesData[currentIndex]) {
+        setCurrentEpisode(episodesData[currentIndex]);
+      } else {
+        throw new Error('Episode tidak ditemukan');
+      }
+    } catch (error) {
+      console.error('Error fetching watch data:', error);
+      setError(error instanceof Error ? error.message : 'Gagal memuat episode');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [bookId, currentIndex]);
 
@@ -65,10 +76,10 @@ export default function Watch() {
     );
   }
 
-  if (!drama || !currentEpisode) {
+  if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Episode tidak ditemukan</p>
+        <ErrorMessage message={error} />
       </div>
     );
   }
